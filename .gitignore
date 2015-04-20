@@ -1,0 +1,28 @@
+*.pyc
+env/
+venv/
+
+# IDE junk
+.idea
+**/.idea/*
+.idea/*
+# Vim files
+*.swo
+*.swp
+*.swn
+**/.sublime-project
+**/.sublime-workspace
+.pydevproject
+.project
+webapp/node_modules
+**/.DS_Store
+*.orig
+.ropeproject
+media
+.coverage
+reports
+.cache
+htmlcov
+logs
+logs/*
+deployment/.vagrant

@@ -13,6 +13,8 @@ GO_UD = '|'
 START = 'o'
 END = 'x'
 
+MOVES = [GO_NE_SW, GO_NW_SE, GO_LR, GO_UD]
+
 MAP = """
       __
      /  \
@@ -25,12 +27,10 @@ MAP = """
 o
 """
 
-print MAP
-
 SPYHOUSE_COFFEE = [44.9914983, -93.2602495]
 
-Point = namedtuple('Point', ['lat', 'lon'], verbose=True)
-AsciiMapCoord = namedtuple('AsciiMapCoord', ['x', 'y'], verbose=True)
+Point = namedtuple('Point', ['lat', 'lon'], verbose=False)
+AsciiMapCoord = namedtuple('AsciiMapCoord', ['x', 'y', 'symbol'], verbose=False)
 
 
 class Step(object):
@@ -39,7 +39,6 @@ class Step(object):
     TEMP_RANGE_C = [float(s) for s in range(-40, 40)]
     LIGHT_RANGE_LUX = [float(s) for s in range(1, 100000, 500)]
 
-    map_symbol = None
     ascii_coord = None
     source_point = None
     destination_point = None
@@ -47,16 +46,20 @@ class Step(object):
     next = None
     previous = None
 
-    def __init__(self, map_symbol, ascii_map_coord, previous_step):
-        if map_symbol == START:
+    def __init__(self, ascii_map_coord, previous_step=None, source_point=None):
+        if ascii_map_coord.symbol == START:
             self.type = 'start'
-        elif map_symbol == END:
+        elif ascii_map_coord.symbol == END:
             self.type = 'end'
         else:
             self.type = None
         self.ascii_coord = ascii_map_coord
-        self.map_symbol = map_symbol
-        self.source_point = previous_step.location()
+        if None is source_point:
+            self.source_point = previous_step.location()
+        elif None is previous_step:
+            self.source_point = source_point
+        else:
+            raise ValueError("must supply either a 'source_point' or a 'previous_step'")
         self.type = type
 
     def set_next(self, step):
@@ -71,7 +74,7 @@ class Step(object):
     def lux(self):
         return random.choice(Step.LIGHT_RANGE_LUX)
 
-    def _get_angled_distance_coord_distance_change(self):
+    def _get_distance_coord_distance_change(self):
         """
         Returns the delta difference for lat an lon going at a 45 degree angle from the source point in any direction.
 
@@ -83,49 +86,109 @@ class Step(object):
         :return: delta latitude float, delta longitude float
         """
 
-        # Calculate pythagorean distance instead of great-circle calculation (we're only moving several meters after all)
-        hypotenuse_squared = Step.STEP_DISTANCE_M * Step.STEP_DISTANCE_M
-        legs_length = math.sqrt(hypotenuse_squared / 2.0) # legs are equidistant because 45 degree change
-
-        lat_change = legs_length / 111111.0
-        lon_change = legs_length / (111111.0 * math.cos(self.source_point.lon))
+        if self.ascii_coord.symbol == GO_NE_SW or self.ascii_coord.symbol == GO_NW_SE:
+            # Calculate pythagorean distance instead of great-circle calculation (we're only moving several meters after all)
+            hypotenuse_squared = Step.STEP_DISTANCE_M * Step.STEP_DISTANCE_M
+            legs_length = math.sqrt(hypotenuse_squared / 2.0)  # legs are equidistant because 45 degree change
+            lat_change = legs_length / 111111.0
+            lon_change = legs_length / (111111.0 * math.cos(self.source_point.lon))
+        elif self.ascii_coord.symbol == GO_UD:
+            lat_change = Step.STEP_DISTANCE_M / 111111.0
+            lon_change = 0.0
+            if self.previous.ascii_coord.y > self.ascii_coord.y:
+                # Go down
+                lat_change *= -1
+        elif self.ascii_coord.symbol == GO_LR:
+            lat_change = 0.0
+            lon_change = Step.STEP_DISTANCE_M / 111111.0
+            if self.previous.ascii_coord.x > self.ascii_coord.x:
+                # go right
+                lon_change *= -1
+        else:
+            raise ValueError("cannot understand direction symbol '{}'".format(self.ascii_coord.symbol))
         return lat_change, lon_change
 
     def __call__(self, *args, **kwargs):
-        slat = self.source_point.lat
-        slon = self.source_point.lon
-        if self.map_symbol == END or self.next is None:
-            return False # do nothing, falsely; you've completed the journey.
-        elif self.map_symbol == START:
-            return True # do nothing, you're at the beginning of the map
-        elif self.map_symbol == GO_NE_SW: # /
-            lat_change, lon_change = self._get_angled_distance_coord_distance_change()
-            # NE or SW?
-            if self.previous.ascii_coord.y < self.ascii_coord.y:
-                # we're above previous, we're going NE
-                self.destination_point = Point(lat=slat + lat_change, lon=slon + lon_change)
-            else:
-                # we're below previous, we're going SW
-                self.destination_point = Point(lat=slat - lat_change, lon=slon - lon_change)
-        elif self.map_symbol == GO_NW_SE: # \
-            lat_change, lon_change = self._get_angled_distance_coord_distance_change()
-            # NW or SE?
-            if self.previous.ascii_coord.y < self.ascii_coord.y:
-                # we're above previous, we're going NW
-                self.destination_point = Point(lat=slat + lat_change, lon=slon - lon_change)
-            else:
-                # we're below previous, we're going SE
-                self.destination_point = Point(lat=slat - lat_change, lon=slon + lon_change)
-        elif self.map_symbol == GO_LR:
-            pass
-        elif self.map_symbol == GO_UD:
-            pass
+        print "in call on symbol {}".format(self.ascii_coord.symbol)
+        slat = self.source_point[0]
+        slon = self.source_point[1]
+        print "slat {} slon {}".format(slat, slon)
+        if self.ascii_coord.symbol == END:
+            print "END"
+            return False  # do nothing, falsely; you've completed the journey.
+        elif self.ascii_coord.symbol == START:
+            print "START"
+            self.destination_point = Point(slat, slon)
+            return True  # do nothing, you're at the beginning of the map
+        elif self.ascii_coord.symbol in MOVES:  # /
+            print 'MOVE {}'.format(self.ascii_coord.symbol)
+            lat_change, lon_change = self._get_distance_coord_distance_change()
+            self.destination_point = Point(lat=slat + lat_change, lon=slon + lon_change)
+            return True
         else:
-            raise ValueError("don't know how to read symbol '{}'".format(self.map_symbol))
+            raise ValueError("don't know how to read symbol '{}'".format(self.ascii_coord.symbol))
+
+
+MOVE_ARITH = {"n": (0, 1), "ne": (1, 1), "e": (1, 0), "se": (1, -1), "s": (0, -1), "sw": (-1, -1), "w": (-1, 0), "nw": (-1, 1)}
+
+
+def look(x, y, direction, move_lut):
+    offsets = MOVE_ARITH.get(direction)
+    new_x = x + offsets[0]
+    new_y =  y + offsets[1]
+    move_sym = move_lut.get((new_x, new_y), False)
+    if move_sym and move_sym in MOVES:
+        return AsciiMapCoord(x=new_x, y=new_y, symbol=move_sym)
+    return False
+
+
+def _gen_next_ascii_coord(last_step, move_lut):
+    last_coord = last_step.ascii_coord
+    x = last_coord.x
+    y = last_coord.y
+    for d in MOVE_ARITH.keys():
+        asci_coord = look(x, y, d, move_lut)
+        if asci_coord:
+            return asci_coord
+    raise LookupError("cannot find where to go")
 
 
 def gen_steps_from_map(starting_point, map):
-    return []
+    steps = []
+    lines = reversed(map.splitlines())
+
+    # find the starting point while creating a LUT for all other moves
+    start_xy = None
+    move_lut = {}
+    for x, row in enumerate(lines):
+        for y, column in enumerate(row):
+            if column:
+                xy_coord = AsciiMapCoord(x=x, y=y, symbol=column)
+                move_lut[(x, y)] = column
+                if None is start_xy and column == START:
+                    start_xy = xy_coord
+    # gen steps
+    if None is not start_xy:
+        print "START {}".format(start_xy)
+        step = Step(ascii_map_coord=start_xy, source_point=starting_point)
+        steps.insert(0, step)
+        did = step()  # move
+
+        if did:
+            print "NEXT"
+            lat_lon = step.destination_point
+            step = Step(ascii_map_coord=_gen_next_ascii_coord(steps[0], move_lut), previous_step=steps[0])
+            steps.insert(0, step)
+
+            while did:
+                did = step()  # keep moving
+                step = Step(ascii_map_coord=_gen_next_ascii_coord(steps[0], move_lut), previous_step=steps[0])
+                steps.insert(0, step)
+
+    else:
+        raise ValueError("map has no start step!")
+
+    return steps
 
 
 def render_as_json(robot_id, location, temperature, brightness):

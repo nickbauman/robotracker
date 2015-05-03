@@ -1,4 +1,6 @@
-import env_setup; env_setup.setup()
+import env_setup;
+
+env_setup.setup()
 
 # DO NOT REMOVE
 # Importing deferred is a work around to this bug.
@@ -17,7 +19,7 @@ from agar.env import on_production_server
 
 
 # def handle_403(request, response, exception):
-#     logging.exception(exception)
+# logging.exception(exception)
 #     # response.write('You are not authorized to view this page!')
 #     response.set_status(403)
 #     render_template(response, '403_error.html')
@@ -51,17 +53,30 @@ application = WSGIApplication(
         # main screen
         ############################################################
         Route(r'/',
-                 handler='handlers.main.MainHandler',
-                 name='main',
+            handler='handlers.main.MainHandler',
+            name='main',
+        ),
+        ############################################################
+        # Event processing
+        ############################################################
+        Route(r'/robot-event/<robot_id>',
+            handler='handlers.event.EventHandler',
+            name='robot-event-get',
+            methods=['GET'],
+        ),
+        Route(r'/robot-event',
+            handler='handlers.event.EventHandler',
+            name='robot-event-post',
+            methods=['POST'],
         ),
         ############################################################
         # warmup
         ############################################################
         Route(r'/_ah/warmup',
-                 handler='handlers.warmup.WarmupHandler',
-                 name='warmup',
+            handler='handlers.warmup.WarmupHandler',
+            name='warmup',
         ),
-    ], #config=config,
+    ],  #config=config,
     debug=not on_production_server
 )
 

@@ -31,5 +31,5 @@ class RoboEmuTest(BaseTest):
                 self.assertIsNotNone(data)
                 self.assertEqual(1234, data['robot_id'])
                 self.assertTrue(data.has_key('loc'))
-                self.assertTrue(data.has_key('lux'))
-                self.assertTrue(data.has_key('temp'))
+                self.assertTrue(data.has_key('luxes'))
+                self.assertTrue(data.has_key('temps'))

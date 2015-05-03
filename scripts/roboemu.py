@@ -207,7 +207,7 @@ def gen_steps_from_map(starting_point, map_structure):
 
 
 def render_as_json(robot_id, location, temperature, brightness):
-    return json.dumps({'robot_id': robot_id, 'loc': location, 'temp': temperature, 'lux': brightness})
+    return json.dumps({'robot_id': robot_id, 'loc': location, 'temps': temperature, 'luxes': brightness})
 
 
 def robo_walkabout(robot_id=1234, starting_point=SPYHOUSE_COFFEE, map=MAP, sample_rate_per_minute=20):

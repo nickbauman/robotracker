@@ -50,24 +50,29 @@ from agar.env import on_production_server
 application = WSGIApplication(
     [
         ############################################################
+        # Event processing
+        ############################################################
+        Route(r'/robot/event/<robot_id>',
+            handler='handlers.event.EventHandler',
+            name='robot-event-get',
+            methods=['GET'],
+        ),
+        Route(r'/robot/track/<robot_id>',
+            handler='handlers.robot.RobotHandler',
+            name='robot-track-get',
+            methods=['GET'],
+        ),
+        Route(r'/event/create',
+            handler='handlers.event.EventHandler',
+            name='robot-event-post',
+            methods=['POST'],
+        ),
+        ############################################################
         # main screen
         ############################################################
         Route(r'/',
             handler='handlers.main.MainHandler',
             name='main',
-        ),
-        ############################################################
-        # Event processing
-        ############################################################
-        Route(r'/robot-event/<robot_id>',
-            handler='handlers.event.EventHandler',
-            name='robot-event-get',
-            methods=['GET'],
-        ),
-        Route(r'/robot-event',
-            handler='handlers.event.EventHandler',
-            name='robot-event-post',
-            methods=['POST'],
         ),
         ############################################################
         # warmup

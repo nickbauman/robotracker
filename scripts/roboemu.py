@@ -1,11 +1,13 @@
 # to be run in a REPL
 import requests, time, json, random, math
 from collections import namedtuple, OrderedDict
+from utils import web
 
-HOST = "test-app-id"
+HOST = "localhost"
+PORT = "8080"
 DEBUG = False
 
-ROBO_EVENTS_POST_URL = "http://{}/robot-event".format(HOST)
+ROBO_EVENTS_POST_URL = "http://{}:{}{}".format(HOST, PORT, web.build_uri('robot-event-post'))
 
 GO_NE_SW = '/'
 GO_NW_SE = '\\'
@@ -207,11 +209,10 @@ def gen_steps_from_map(starting_point, map_structure):
 
 
 def render_as_json(robot_id, location, temperature, brightness):
-    return json.dumps({'robot_id': robot_id, 'loc': location, 'temps': temperature, 'luxes': brightness})
+    return {'robot_id': robot_id, 'loc': location, 'temps': temperature, 'luxes': brightness}
 
 
-def robo_walkabout(robot_id=1234, starting_point=SPYHOUSE_COFFEE, map=MAP, sample_rate_per_minute=20):
-    my_robot_url = ROBO_EVENTS_POST_URL
+def robo_walkabout(robot_id=1234, endpoint=ROBO_EVENTS_POST_URL, starting_point=SPYHOUSE_COFFEE, map=MAP, sample_rate_per_minute=20):
     last_location = starting_point
     pause_seconds = 60 / sample_rate_per_minute
     steps = gen_steps_from_map(starting_point, map)
@@ -219,9 +220,8 @@ def robo_walkabout(robot_id=1234, starting_point=SPYHOUSE_COFFEE, map=MAP, sampl
         last_location = destination.location()  # based on map
         temperature = destination.temperature()  # random
         brightness = destination.lux()  # random
-        message = render_as_json(robot_id, last_location, temperature, brightness)
-        requests.post(my_robot_url, json=message)
+        message = {'robot_id': robot_id, 'loc': last_location, 'temps': [temperature], 'luxes': [brightness]}
+        response = requests.post(endpoint, json=message)
+        assert 200 == response.status_code, "expected 200 but received {}".format(response.status_code)
         time.sleep(pause_seconds)
     return last_location
-
-

@@ -1,13 +1,71 @@
 <html>
 <head>
+    <style>
+        html, body, #map-canvas {
+            height: 100%;
+            margin: 0px;
+            padding: 0px
+        }
+    </style>
+    <script src="https://maps.googleapis.com/maps/api/js?v=3.exp"></script>
+    <script>
+        function loadMap(coords) {
+            var mapOptions = {
+                zoom: 3,
+                center: new google.maps.LatLng(0, -180),
+                mapTypeId: google.maps.MapTypeId.TERRAIN
+            };
+
+            var map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
+
+            var coordinates = [];
+            for (var i = 0; i < coords.length; i++)
+                coordinates.push(new google.maps.LatLng(coords[i].lat, coords[i].lon));
+            var robotPath = new google.maps.Polyline({
+                path: coordinates,
+                geodesic: true,
+                strokeColor: '#FF0000',
+                strokeOpacity: 1.0,
+                strokeWeight: 2
+            });
+            robotPath.setMap(map);
+        }
+    </script>
+    {% if tracked_robot %}
+        <script>
+            (function poll() {
+                setTimeout(function () {
+                    $.ajax({
+                        type: 'POST',
+                        dataType: 'json',
+                        url: '{% uri_for robot-track-get robot_id=tracked_robot.robot_id %}',
+                        success: function (data) {
+                            loadMap(data);
+                        },
+                        complete: poll
+                    });
+                }, 5000);
+            })();
+        </script>
+    {% endif %}
 </head>
 
 <body>
 
-Hello World.
-<br>
+<a href="{% uri_for main %}">home</a>
 
-<a href="{% uri_for main %}">main</a>
+<h1>Robot Tracker</h1>
+
+{% if robots %}
+    {% for robot in robots %}
+    <a href="{% uri_for robot-track-get robot_id=robot.robot_id %}">track robot {{ robot.robot_id }}</a>
+    {% endfor %}
+{% else %}
+    <h2>No robots found!</h2>
+    A robot has to send us sensor data for us to show.
+{% endif %}
+
+<div id="map-canvas"></div>
 
 </body>
 

@@ -7,27 +7,33 @@
             padding: 0px
         }
     </style>
+    <script src="/js/jquery-2.1.3.min.js"></script>
     <script src="https://maps.googleapis.com/maps/api/js?v=3.exp"></script>
     <script>
-        function loadMap(coords) {
+        function loadMap(data) {
             var mapOptions = {
-                zoom: 3,
-                center: new google.maps.LatLng(0, -180),
+                zoom: 15,
+                center: new google.maps.LatLng(44.998501, -93.246544), // spyhouse
                 mapTypeId: google.maps.MapTypeId.TERRAIN
             };
 
             var map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
 
             var coordinates = [];
-            for (var i = 0; i < coords.length; i++)
-                coordinates.push(new google.maps.LatLng(coords[i].lat, coords[i].lon));
-            var robotPath = new google.maps.Polyline({
-                path: coordinates,
-                geodesic: true,
-                strokeColor: '#FF0000',
-                strokeOpacity: 1.0,
-                strokeWeight: 2
-            });
+            for (var i = 0; i < data.length; i++) {
+                var points = data[i].location.split(' ');
+                var lat = points[0]
+                var lon = points[1];
+                var gpoint = new google.maps.LatLng(lat, lon);
+                coordinates.push(gpoint);
+                var robotPath = new google.maps.Polyline({
+                    path: coordinates,
+                    geodesic: false,
+                    strokeColor: '#FF0000',
+                    strokeOpacity: 1.0,
+                    strokeWeight: 2
+                });
+            }
             robotPath.setMap(map);
         }
     </script>
@@ -36,9 +42,9 @@
             (function poll() {
                 setTimeout(function () {
                     $.ajax({
-                        type: 'POST',
+                        type: 'GET',
                         dataType: 'json',
-                        url: '{% uri_for robot-track-get robot_id=tracked_robot.robot_id %}',
+                        url: '{% uri_for robot-event-get robot_id=tracked_robot.robot_id %}',
                         success: function (data) {
                             loadMap(data);
                         },

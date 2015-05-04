@@ -1,4 +1,4 @@
-import json
+import json, logging
 from webapp2 import RequestHandler
 
 from google.appengine.ext import ndb
@@ -11,13 +11,15 @@ from models import Robot, Event
 from django.template import add_to_builtins
 add_to_builtins('agar.django.templatetags')
 
+
 class EventHandler(RequestHandler):
     def get(self, robot_id):
-        robot = Robot.query(robot_id == robot_id).get()
+        robot = Robot.query(Robot.robot_id == robot_id).get()
         if None is robot:
             self.response.set_status(404, "robot not found")
             return
         events = Event.query(Event.robot_id == robot.robot_id).order(-Event.created).fetch(200)
+        logging.info("found {} events for {}".format(len(events), robot_id))
         json_response(self.response, events, strategy=EVENT_STRATEGY)
 
     def post(self):

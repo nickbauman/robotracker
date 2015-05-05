@@ -20,9 +20,27 @@
             var map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
 
             var coordinates = [];
+            var coord_readings = {};
+            // assoc readings with to coordinate
             for (var i = 0; i < data.length; i++) {
-                var points = data[i].location.split(' ');
-                var lat = points[0]
+                var point_entry = coord_readings[data[i].location];
+                if (!point_entry) {
+                    point_entry = {'lux': [], 'tmp': []};
+                    coord_readings[data[i].location] = point_entry;
+                }
+                for (var j = 0; j < data[i].readings.length; j++) {
+                    console.log("data[i]: "+JSON.stringify(data[i]));
+                    console.log("nature: "+JSON.stringify(data[i].nature));
+                    var t = point_entry[data[i].nature];
+                    t.push(data[i].readings[j]);
+                }
+                coord_readings[data[i].location] = point_entry;
+            }
+            // create map lines according to coordinate keys
+            var keys = Object.keys(coord_readings);
+            for(var m=0; m < keys.length; m++) {
+                var points = keys[m].split(' ');
+                var lat = points[0];
                 var lon = points[1];
                 var gpoint = new google.maps.LatLng(lat, lon);
                 coordinates.push(gpoint);

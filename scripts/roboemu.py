@@ -5,7 +5,7 @@ from utils import web
 
 HOST = "localhost"
 PORT = "8080"
-DEBUG = False
+DEBUG = True
 
 ROBO_EVENTS_POST_URL = "http://{}:{}{}".format(HOST, PORT, web.build_uri('robot-event-post'))
 
@@ -18,7 +18,8 @@ END = 'x'
 
 MOVES = [GO_NE_SW, GO_NW_SE, GO_LR, GO_UD]
 
-SEARCH_DIRECTIONS = OrderedDict(n=(0, 1), e=(1, 0), s=(0, -1), w=(-1, 0), nw=(-1, 1), ne=(1, 1), se=(1, -1), sw=(-1, -1))
+SEARCH_DIRECTIONS = OrderedDict(n=(0, 1), e=(1, 0), s=(0, -1), w=(-1, 0), nw=(-1, 1), ne=(1, 1), se=(1, -1),
+    sw=(-1, -1))
 
 MAP = [
     '     --                  ',
@@ -26,12 +27,12 @@ MAP = [
     '   /    \  /   \         ',
     '   \     --     ----     ',
     '    \               |    ',
-    '  ---                --  ',
-    ' /                     \ ',
-    'o                       x',
+    '  ---                --x ',
+    ' /                       ',
+    'o                        ',
 ]
 
-SPYHOUSE_COFFEE = [44.9914983, -93.2602495]
+SPYHOUSE_COFFEE = [44.9983059, -93.2467148]
 
 Point = namedtuple('Point', ['lat', 'lon'], verbose=False)
 AsciiMapCoord = namedtuple('AsciiMapCoord', ['x', 'y', 'symbol'], verbose=False)
@@ -71,7 +72,7 @@ class Step(object):
         self.next = step
 
     def location(self):
-        return self.destination_point if self.destination_point is not None else self.source_point
+        return self.destination_point
 
     def temperature(self):
         return random.choice(Step.TEMP_RANGE_C)
@@ -79,7 +80,7 @@ class Step(object):
     def lux(self):
         return random.choice(Step.LIGHT_RANGE_LUX)
 
-    def _get_distance_coord_distance_change(self):
+    def determine_destination_point(self):
         """
         Returns the delta difference for lat an lon going at a 45 degree angle from the source point in any direction.
 
@@ -90,44 +91,61 @@ class Step(object):
 
         :return: delta latitude float, delta longitude float
         """
-
+        slat = self.source_point[0]
+        slon = self.source_point[1]
+        lat_neg = -1 if slat < 0 else 1
+        lon_neg = -1 if slon < 0 else 1
         if self.ascii_coord.symbol == GO_NE_SW or self.ascii_coord.symbol == GO_NW_SE:
-            # Calculate pythagorean distance instead of great-circle calculation (we're only moving several meters after all)
+            # Calculate pythagorean distance instead of great-circle calculation (we're only moving several meters)
             hypotenuse_squared = Step.STEP_DISTANCE_M * Step.STEP_DISTANCE_M
             legs_length = math.sqrt(hypotenuse_squared / 2.0)  # legs are equidistant because 45 degree change
             lat_change = legs_length / 111111.0
             lon_change = legs_length / (111111.0 * math.cos(self.source_point.lon))
+            if self.ascii_coord.symbol == GO_NE_SW:  # forward slash /
+                if self.previous.ascii_coord.y > self.ascii_coord.y:
+                    p("we're going SW")
+                    lat_change *= (-1 * lat_neg)
+                    lon_change *= (-1 * lon_neg)
+                else:
+                    p("we're going NE")
+            else:  # back slash \
+                if self.previous.ascii_coord.y > self.ascii_coord.y:
+                    p("we're going SE")
+                    lat_change *= (-1 * lat_neg)
+                else:
+                    p("we're going NW")
+                    lon_change *= (-1 * lon_neg)
         elif self.ascii_coord.symbol == GO_UD:
             lat_change = Step.STEP_DISTANCE_M / 111111.0
             lon_change = 0.0
             if self.previous.ascii_coord.y > self.ascii_coord.y:
-                # Go down
-                lat_change *= -1
+                p("we're going S")
+                lat_change *= (-1 * lat_neg)
+            else:
+                p("we're going N")
         elif self.ascii_coord.symbol == GO_LR:
             lat_change = 0.0
-            lon_change = Step.STEP_DISTANCE_M / (111111.0 * math.cos(self.source_point.lon)) - .002912
-            if self.previous.ascii_coord.x > self.ascii_coord.x:
-                # go right
-                lon_change *= -1
+            lon_change = Step.STEP_DISTANCE_M / (111111.0 * math.cos(self.source_point.lon))
+            if self.previous.ascii_coord.x < self.ascii_coord.x:
+                p("we're going E")
+                lon_change *= (-1 * lon_neg)
+            else:
+                p("we're going W")
         else:
             raise ValueError("cannot understand direction symbol '{}'".format(self.ascii_coord.symbol))
-        return lat_change, lon_change
+        return Point(lat=slat + lat_change, lon=slon + lon_change)
 
     def __call__(self, *args, **kwargs):
-        slat = self.source_point[0]
-        slon = self.source_point[1]
-        p("{}, {}".format(slat, slon))
         if self.ascii_coord.symbol == END:
             p("END")
             return False  # do nothing, falsely; you've completed the journey.
         elif self.ascii_coord.symbol == START:
             p("START")
-            self.destination_point = Point(slat, slon)
-            return True  # do nothing, you're at the beginning of the map
+            self.destination_point = Point(self.source_point[0], self.source_point[1])
+            return True  # truly do nothing, you're at the beginning of the map
         elif self.ascii_coord.symbol in MOVES:  # /
             p('MOVE {}'.format(self.ascii_coord))
-            lat_change, lon_change = self._get_distance_coord_distance_change()
-            self.destination_point = Point(lat=slat + lat_change, lon=slon + lon_change)
+            self.destination_point = self.determine_destination_point()
             return True
         else:
             raise ValueError("don't know how to read symbol '{}'".format(self.ascii_coord.symbol))
@@ -169,18 +187,20 @@ def _gen_next_ascii_coord(last_step, move_lut):
 
 
 def gen_steps_from_map(starting_point, map_structure):
+    if DEBUG:
+        for i, row in enumerate(map_structure):
+            p("{}: {}".format(i, row))
+        p("   {}".format("".join([str(n) for n in (list(range(10)) * 3)])))
+
     steps = []
 
-    lines = map_structure
-    for i, row in enumerate(lines):
-        p("{}: {}".format(i, row))
-    p("  {}".format("".join([str(n) for n in (list(range(10)) * 3)])))
-
-    # find the starting point while creating a LUT for all other moves
+    # find the starting point and create a LUT for all other moves
     start_xy = None
     move_lut = {"traversed": []}
-    for x, row in enumerate(lines):
-        for y, column in enumerate(row):
+    y_mantissa = range(len(map_structure))
+    y_mantissa.reverse()
+    for y, row in zip(y_mantissa, map_structure):
+        for x, column in enumerate(row):
             if column:
                 xy_coord = AsciiMapCoord(x=x, y=y, symbol=column)
                 if column in MOVES:
@@ -191,14 +211,14 @@ def gen_steps_from_map(starting_point, map_structure):
     if None is not start_xy:
         p("START {}".format(start_xy))
         step = Step(ascii_map_coord=start_xy, source_point=starting_point)
-        steps.insert(0, step)
+        steps.append(step)
         did = step()  # move
 
         try:
             while did:
                 p("NEXT")
-                step = Step(ascii_map_coord=_gen_next_ascii_coord(steps[0], move_lut), previous_step=step)
-                steps.insert(0, step)
+                step = Step(ascii_map_coord=_gen_next_ascii_coord(steps[-1], move_lut), previous_step=step)
+                steps.append(step)
                 did = step()  # keep moving
         except LookupError:
             print("generated {} maps steps".format(len(steps)))
@@ -212,7 +232,8 @@ def render_as_json(robot_id, location, temperature, brightness):
     return {'robot_id': robot_id, 'loc': location, 'temps': temperature, 'luxes': brightness}
 
 
-def robo_walkabout(robot_id=1234, endpoint=ROBO_EVENTS_POST_URL, starting_point=SPYHOUSE_COFFEE, map=MAP, sample_rate_per_minute=20):
+def robo_walkabout(robot_id=1234, endpoint=ROBO_EVENTS_POST_URL, starting_point=SPYHOUSE_COFFEE, map=MAP,
+        sample_rate_per_minute=20):
     last_location = starting_point
     pause_seconds = 60 / sample_rate_per_minute
     steps = gen_steps_from_map(starting_point, map)

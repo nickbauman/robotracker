@@ -12,7 +12,7 @@
     <script>
         function loadMap(data) {
             var mapOptions = {
-                zoom: 15,
+                zoom: 16,
                 center: new google.maps.LatLng(44.998501, -93.246544), // spyhouse
                 mapTypeId: google.maps.MapTypeId.TERRAIN
             };
@@ -44,14 +44,23 @@
                 var lon = points[1];
                 var gpoint = new google.maps.LatLng(lat, lon);
                 coordinates.push(gpoint);
-                var robotPath = new google.maps.Polyline({
-                    path: coordinates,
-                    geodesic: false,
-                    strokeColor: '#FF0000',
-                    strokeOpacity: 1.0,
-                    strokeWeight: 2
+                // create the annotated points
+                var point_entry = coord_readings[keys[m]];
+                var marker = new google.maps.Marker({
+                    position: gpoint,
+                    title: ""+ m +": "+point_entry['tmp'] + '°C ' + point_entry['lux'] + 'lx',
+                    map: map
                 });
             }
+
+            var robotPath = new google.maps.Polyline({
+                path: coordinates,
+                geodesic: false,
+                strokeColor: '#FF0000',
+                strokeOpacity: 1.0,
+                strokeWeight: 2
+            });
+
             robotPath.setMap(map);
         }
     </script>

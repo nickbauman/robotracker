@@ -31,7 +31,8 @@ class EventHandler(RequestHandler):
         robot = Robot.query(Robot.robot_id == str(robot_id)).get()
         if None is robot:
             # be nice and make a robot
-            robot = Robot(robot_id=str(robot_id)).put()
+            robot = Robot(robot_id=str(robot_id))
+            robot.put()
         coords = body.get('loc')
         location = None
         if coords and len(coords) == 2 and type(coords[0]) == float and type(coords[1] == float):

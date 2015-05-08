@@ -22,14 +22,14 @@ SEARCH_DIRECTIONS = OrderedDict(n=(0, 1), e=(1, 0), s=(0, -1), w=(-1, 0), nw=(-1
     sw=(-1, -1))
 
 MAP = [
-    '     --                  ',
-    '    /  \    ---          ',
-    '   /    \  /   \         ',
-    '   \     --     ----     ',
-    '    \               |    ',
-    '  ---                --x ',
-    ' /                       ',
-    'o                        ',
+    '     --              ',
+    '    /  \    ---      ',
+    '   /    \  /   \     ',
+    '   \     --     --   ',
+    '    \            /   ',
+    '  ---             --x',
+    ' /                   ',
+    'o                    ',
 ]
 
 SPYHOUSE_COFFEE = [44.9983059, -93.2467148]
@@ -39,7 +39,7 @@ AsciiMapCoord = namedtuple('AsciiMapCoord', ['x', 'y', 'symbol'], verbose=False)
 
 
 class Step(object):
-    STEP_DISTANCE_M = 100.0
+    STEP_DISTANCE_M = 50.0
     VALID_TYPES = ['start', 'end', None]
     TEMP_RANGE_C = [float(s) for s in range(-40, 40)]
     LIGHT_RANGE_LUX = [float(s) for s in range(1, 100000, 500)]
@@ -93,8 +93,8 @@ class Step(object):
         """
         slat = self.source_point[0]
         slon = self.source_point[1]
-        lat_neg = -1 if slat < 0 else 1
-        lon_neg = -1 if slon < 0 else 1
+        below_equator = slat < 0
+        west_of_prime = slon < 0
         if self.ascii_coord.symbol == GO_NE_SW or self.ascii_coord.symbol == GO_NW_SE:
             # Calculate pythagorean distance instead of great-circle calculation (we're only moving several meters)
             hypotenuse_squared = Step.STEP_DISTANCE_M * Step.STEP_DISTANCE_M
@@ -104,23 +104,33 @@ class Step(object):
             if self.ascii_coord.symbol == GO_NE_SW:  # forward slash /
                 if self.previous.ascii_coord.y > self.ascii_coord.y:
                     p("we're going SW")
-                    lat_change *= (-1 * lat_neg)
-                    lon_change *= (-1 * lon_neg)
+                    if west_of_prime:
+                        lon_change *= -1
+                    if not below_equator:
+                        lat_change *= -1
                 else:
                     p("we're going NE")
+                    if not west_of_prime:
+                        lon_change *= -1
+                    if below_equator:
+                        lat_change *= -1
             else:  # back slash \
                 if self.previous.ascii_coord.y > self.ascii_coord.y:
                     p("we're going SE")
-                    lat_change *= (-1 * lat_neg)
+                    lat_change *= -1
                 else:
                     p("we're going NW")
-                    lon_change *= (-1 * lon_neg)
+                    if west_of_prime:
+                        lon_change *= -1
+                    if below_equator:
+                        lat_change *= -1
         elif self.ascii_coord.symbol == GO_UD:
             lat_change = Step.STEP_DISTANCE_M / 111111.0
             lon_change = 0.0
             if self.previous.ascii_coord.y > self.ascii_coord.y:
                 p("we're going S")
-                lat_change *= (-1 * lat_neg)
+                if below_equator:
+                    lat_change *= -1
             else:
                 p("we're going N")
         elif self.ascii_coord.symbol == GO_LR:
@@ -128,11 +138,16 @@ class Step(object):
             lon_change = Step.STEP_DISTANCE_M / (111111.0 * math.cos(self.source_point.lon))
             if self.previous.ascii_coord.x < self.ascii_coord.x:
                 p("we're going E")
-                lon_change *= (-1 * lon_neg)
             else:
                 p("we're going W")
+                if west_of_prime:
+                    lon_change *= -1
+
         else:
             raise ValueError("cannot understand direction symbol '{}'".format(self.ascii_coord.symbol))
+        p("lat curr   {} lon curr   {}".format(slat, slon))
+        p("lat new    {} lon new    {}".format(slat + lat_change, slon + lon_change))
+        p("lat change {} lon change {}".format(lat_change, lon_change))
         return Point(lat=slat + lat_change, lon=slon + lon_change)
 
     def __call__(self, *args, **kwargs):

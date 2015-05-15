@@ -15,7 +15,7 @@ from scripts.roboemu import HOST, PORT
 
 class RoboEmuTest(BaseTest):
     def test_gen_steps_from_math(self):
-        steps = robot.gen_steps_from_map(robot.SPYHOUSE_COFFEE, robot.MAP)
+        steps = robot.gen_steps_from_map(robot.SPYHOUSE_COFFEE, robot.MAP1)
         self.assertIsNotNone(steps)
         self.assertLength(28, steps)
 

@@ -21,7 +21,7 @@ MOVES = [GO_NE_SW, GO_NW_SE, GO_LR, GO_UD]
 SEARCH_DIRECTIONS = OrderedDict(n=(0, 1), e=(1, 0), s=(0, -1), w=(-1, 0), nw=(-1, 1), ne=(1, 1), se=(1, -1),
     sw=(-1, -1))
 
-MAP = [
+MAP1 = [
     '     --              ',
     '    /  \    ---      ',
     '   /    \  /   \     ',
@@ -30,6 +30,18 @@ MAP = [
     '  ---             --x',
     ' /                   ',
     'o                    ',
+]
+
+MAP2 = [
+    '       --      ',
+    '      /  \     ',
+    '     /    \    ',
+    '    /      \   ',
+    '   /        \  ',
+    '  /          \ ',
+    '  \          / ',
+    '   \        /  ',
+    '    ---x  o-   ',
 ]
 
 SPYHOUSE_COFFEE = [44.9983059, -93.2467148]
@@ -247,7 +259,7 @@ def render_as_json(robot_id, location, temperature, brightness):
     return {'robot_id': robot_id, 'loc': location, 'temps': temperature, 'luxes': brightness}
 
 
-def robo_walkabout(robot_id=1234, endpoint=ROBO_EVENTS_POST_URL, starting_point=SPYHOUSE_COFFEE, map=MAP,
+def robo_walkabout(robot_id=1234, endpoint=ROBO_EVENTS_POST_URL, starting_point=SPYHOUSE_COFFEE, map=MAP1,
         sample_rate_per_minute=20):
     last_location = starting_point
     pause_seconds = 60 / sample_rate_per_minute

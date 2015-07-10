@@ -1,31 +1,26 @@
-# LEARN YOU AN APP ENGINE #
+# Robot Tracker (to teach AppEngine development) #
 
     python manage.py serve
 
 should run the server for you assuming your app engine SDK is set up.
 
-### Get to know Google's App Engine (Python) version ###
+### Deploy ###
 
-* Quick summary
-* Version
-* [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
+    python manage.py snapdeploy -A <your appid>
 
 ### How do I get set up? ###
 
-* Summary of set up
-* Configuration
-* Dependencies
-* Database configuration
-* How to run tests
-* Deployment instructions
+* Create an app engine app id
+* Snapdeploy this
 
 ### Contribution guidelines ###
 
-* Writing tests
-* Code review
-* Other guidelines
+* Write failing tests first
+* Implement code until tests pass
+* Repeat above two steps
+* Create Pull Request
+* Wait for code review and approval
 
 ### Who do I talk to? ###
 
-* Repo owner or admin
-* Other community or team contact
+* nick.bauman@buzzfeed.com

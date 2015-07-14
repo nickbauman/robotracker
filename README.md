@@ -1,8 +1,6 @@
 # Robot Tracker (to teach AppEngine development) #
 
-# Prerequisites
-
-## Summary:
+## Summary Prerequisites
 
 * Appscale
 * Vagrant
@@ -16,6 +14,8 @@ Install the following:
 
     sudo pip install appscale-tools
     brew install ssh-copy-id
+
+If you're using virtualenv, you would `pip install virtualenv.install` from the root of the repo
 
 Install the [Google Appengine SDK](https://cloud.google.com/appengine/downloads "AppEngine SDK Download Page")
 
@@ -33,18 +33,26 @@ when you use it. I like to install it in my home directory, but you can install 
 
 ## Running The App Locally (uses AppEngine SDK)
 
+Remember to check out the code from this repo first.
+
 This runs the server for you assuming your app engine SDK is set up. From within the directory where you checked out 
 the code:
 
     python manage.py serve
 
+The output should tell you where you can visit the app in your browser. Most likely it will be something like `http://localhost:8080`
+
 ## Deploy on Google App Engine (Google Cloud Platform)
 
-First create an app engine app id in your [cloud console](http://cloud.google.com "Google Cloud Console") 
+First create an app engine app id in your [cloud console](http://cloud.google.com "Google Cloud Console"). Notice the 
+app-id you choose (or is created for you) must be set in the `app.yaml` file at the top for the deploy to succeed.
 
 Then snapdeploy this repo:
 
-    python manage.py snapdeploy -A <your appid>
+    python manage.py snapdeploy -A <your appid> --ignore-unclean
+
+The `--ignore-unclean` flag is required because you've had to edit the `app.yaml` and you don't want to commit the 
+changes.
 
 
 ## Vagrant and AppScale config
@@ -70,6 +78,8 @@ ssh into the vagrant VM and change the root password into a known password:
 
     vagrant ssh
     sudo -s passwd
+
+Remember now you must exit the Linux VM and return back to your deployment host machine (which is probably your mac)
 
 Now run the appscale config:
 
@@ -120,9 +130,9 @@ For this you'll also want to have `IPython` installed. From within the directory
 
 Now you have your app libraries running in the shell. Do the following:
 
-    from scripts import robotemu
+    from scripts import roboemu
 
-    robotemu.robo_walkabout(endpoint=http://<hostname and port>/event/create)
+    roboemu.robo_walkabout(endpoint=http://<hostname and port>/event/create)
 
 The <hostname and port> should be (based on your vagrant config) 192.168.34.10:8080. If you deployed to AppEngine, this
 will be the `http://<app id>.appspot.com/event/create`

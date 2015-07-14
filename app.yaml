@@ -55,3 +55,4 @@ skip_files:
 - ^.*\.egg-info
 - ^.*\.dist-info
 - ^\.DS_Store.*
+- virtualenv.install

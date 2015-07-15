@@ -132,7 +132,7 @@ Now you have your app libraries running in the shell. Do the following:
 
     from scripts import roboemu
 
-    roboemu.robo_walkabout(endpoint=http://<hostname and port>/event/create)
+    roboemu.robo_walkabout(endpoint="http://<hostname and port>/event/create")
 
 The <hostname and port> should be (based on your vagrant config) 192.168.34.10:8080. If you deployed to AppEngine, this
 will be the `http://<app id>.appspot.com/event/create`

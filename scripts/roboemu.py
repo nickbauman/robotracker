@@ -2,6 +2,7 @@
 import requests, time, json, random, math
 from collections import namedtuple, OrderedDict
 from utils import web
+from robomaps import MAP2, MAP1
 
 HOST = "localhost"
 PORT = "8080"
@@ -20,29 +21,6 @@ MOVES = [GO_NE_SW, GO_NW_SE, GO_LR, GO_UD]
 
 SEARCH_DIRECTIONS = OrderedDict(n=(0, 1), e=(1, 0), s=(0, -1), w=(-1, 0), nw=(-1, 1), ne=(1, 1), se=(1, -1),
     sw=(-1, -1))
-
-MAP1 = [
-    '     --              ',
-    '    /  \    ---      ',
-    '   /    \  /   \     ',
-    '   \     --     --   ',
-    '    \            /   ',
-    '  ---             --x',
-    ' /                   ',
-    'o                    ',
-]
-
-MAP2 = [
-    '       --      ',
-    '      /  \     ',
-    '     /    \    ',
-    '    /      \   ',
-    '   /        \  ',
-    '  /          \ ',
-    '  \          / ',
-    '   \        /  ',
-    '    ---x  o-   ',
-]
 
 SPYHOUSE_COFFEE = [44.9983059, -93.2467148]
 
